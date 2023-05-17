@@ -44,6 +44,7 @@ public class Form_Karyawan extends javax.swing.JFrame {
         Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
         Dimension frameSize = getSize();
         setLocation((screenSize.width - frameSize.width)/2,(screenSize.height-frameSize.height)/2);
+        Seticon();
     }
     public void getData(){
         model.getDataVector().removeAllElements();
@@ -459,6 +460,11 @@ public class Form_Karyawan extends javax.swing.JFrame {
         });
 
         ktg.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "nama", "jabatan", "alamat" }));
+        ktg.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                ktgActionPerformed(evt);
+            }
+        });
 
         jLabel11.setText("Kategori");
 
@@ -633,6 +639,10 @@ public class Form_Karyawan extends javax.swing.JFrame {
         getData();
     }//GEN-LAST:event_jButton7ActionPerformed
 
+    private void ktgActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_ktgActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_ktgActionPerformed
+
     /**
      * @param args the command line arguments
      */
@@ -704,4 +714,9 @@ public class Form_Karyawan extends javax.swing.JFrame {
     private com.toedter.calendar.JDateChooser tg;
     // End of variables declaration//GEN-END:variables
 
+       private void Seticon() {
+       setIconImage(Toolkit.getDefaultToolkit().getImage(getClass().getResource("/Icon/gif/16x16/dktbig.gif")));
+    }
 }
+
+

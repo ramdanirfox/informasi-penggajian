@@ -3,7 +3,18 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/GUIForms/JFrame.java to edit this template
  */
 package Form;
-
+import java.sql.*;
+import koneksiDB.koneksi;
+import javax.swing.*;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.swing.table.DefaultTableModel;
+import java.awt.*;
+import java.awt.Dimension;
+import java.awt.Toolkit;
 import javax.swing.JOptionPane;
 
 /**
@@ -11,14 +22,160 @@ import javax.swing.JOptionPane;
  * @author RFox
  */
 public class Form_Cuti extends javax.swing.JFrame {
-
+private DefaultTableModel model;
+ String vcutiID,vkaryawanID,vAlasan,vTglCuti,vTglMasuk;
+   
+  private static Statement st;
     /**
      * Creates new form Form_Cuti
      */
     public Form_Cuti() {
         initComponents();
+        model = new DefaultTableModel();
+        tbl.setModel(model);
+        upd.setEnabled(false);
+        del.setEnabled(false);
+        model.addColumn("cutiID");
+        model.addColumn("karyawanID");
+        model.addColumn("alasan");
+        model.addColumn("tgl_cuti");
+        model.addColumn("tgl_masuk");
+        Seticon();
+        Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+        Dimension frameSize = getSize();
+        setLocation((screenSize.width - frameSize.width) / 2, (screenSize.height - frameSize.height) / 2);
+        getData();
     }
-
+    public String idKry;
+ 
+    public String getidKry() {
+        return idKry;
+    }
+    public void getData(){
+        model.getDataVector().removeAllElements();
+        model.fireTableDataChanged();
+        String cariitem = cr.getText();
+        try{
+            st = (Statement) koneksi.getKoneksi().createStatement();
+            String sql = "SELECT * FROM cuti where cutiID like '%" + cariitem + "%' or karyawanID like '%" + cariitem + "%' order by cutiID asc";
+            ResultSet res = st.executeQuery(sql);
+            while(res.next()){
+                Object[] obj = new Object[5];
+                obj[0] = res.getString("cutiID");
+                obj[1] = res.getString("karyawanID");
+                obj[2] = res.getString("alasan");
+                obj[3] = res.getString("tgl_cuti");
+                obj[4] = res.getString("tgl_masuk");
+                model.addRow(obj);
+            }
+        }catch(SQLException err){
+            JOptionPane.showMessageDialog(null, err.getMessage());
+        }
+    }
+    public void loadData(){
+        vcutiID = txtcuti.getText();
+        vkaryawanID = nm.getText();
+        vAlasan = txtalasan.getText();
+        String tampilan ="yyyy-MM-dd" ; 
+        SimpleDateFormat fm = new SimpleDateFormat(tampilan); 
+        vTglCuti = String.valueOf(fm.format(tgl_cuti.getDate()));
+        vTglMasuk = String.valueOf(fm.format(tgl_masuk.getDate()));
+    }
+    public void save(){
+        loadData();
+        try{
+        st = (Statement)koneksi.getKoneksi().createStatement();
+        String sql = "Insert into cuti(cutiID,karyawanID,alasan,tgl_cuti,tgl_masuk)"
+                +"values('"+vcutiID+"','"+vkaryawanID+"','"+vAlasan+"','"+vTglCuti+"','"+vTglMasuk+"')";
+        PreparedStatement p = (PreparedStatement)koneksi.getKoneksi().prepareStatement(sql);
+        p.executeUpdate(sql);
+        getData();
+        reset();
+        nm.requestFocus();
+        JOptionPane.showMessageDialog(null, "Data Berhasil DiSimpan!");
+        }catch(SQLException err){
+            JOptionPane.showMessageDialog(null, "Data Gagal DiSimpan!");
+            reset();
+        }
+    }
+    public void reset(){
+        vcutiID = "";
+        vkaryawanID  = "";
+        vAlasan = "";
+        vTglCuti  = "";
+        vTglMasuk  = "";
+        nm.setText(null);
+        txtcuti.setText(null);
+        txtalasan.setText(null);
+        tgl_cuti.setDate(null);
+        tgl_masuk.setDate(null);
+         cr.setText("");
+    }
+    public void selectData(){
+        int i = tbl.getSelectedRow();
+        if(i == -1){
+            JOptionPane.showMessageDialog(null, "Tidak ada data terpilih!");
+            return;
+        }
+        nm.setText(""+model.getValueAt(i, 1));
+         txtcuti.setText(""+model.getValueAt(i, 0));
+        txtalasan.setText(""+model.getValueAt(i, 2));
+         try {
+          
+            Date date = new SimpleDateFormat("yyyy-MM-dd").parse((String)model.getValueAt(i, 3));
+            tgl_cuti.setDate(date);
+            Date date1 = new SimpleDateFormat("yyyy-MM-dd").parse((String)model.getValueAt(i, 4));
+            tgl_masuk.setDate(date1);
+        } catch (ParseException ex) {
+            Logger.getLogger(Form_Karyawan.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+    public void update(){
+        loadData();
+        try{
+           st = (Statement)koneksi.getKoneksi().createStatement();
+           String sql = "update cuti set karyawanID='"+vkaryawanID+"',"
+                   + "alasan='"+vAlasan+"',"
+                   + "tgl_cuti='"+vTglCuti+"',"
+                   + "tgl_masuk='"+vTglMasuk+"' where cutiID='"+vcutiID+"'";
+        PreparedStatement p = (PreparedStatement)koneksi.getKoneksi().prepareStatement(sql);
+        p.executeUpdate();
+        getData();
+        reset();
+        nm.requestFocus();
+        JOptionPane.showMessageDialog(null, "Data Berhasil DiUpdate");
+        }catch(SQLException err){
+            JOptionPane.showMessageDialog(null, "Data Gagal DiUpdate!");
+            reset();
+        }
+    }
+    public void delete(){
+        loadData();
+        int psn = JOptionPane.showConfirmDialog(null, "Anda yakin ingin menghapus data ini?","Konfirmasi",
+                JOptionPane.OK_CANCEL_OPTION);
+        if(psn == JOptionPane.OK_OPTION){
+            try{
+                st = (Statement) koneksi.getKoneksi().createStatement();
+                String sql = "Delete From cuti Where cutiID='"+vcutiID+"'";
+                PreparedStatement p =(PreparedStatement) koneksi.getKoneksi().prepareCall(sql);
+                p.executeUpdate();
+                getData();
+                reset();
+                nm.requestFocus();
+                JOptionPane.showMessageDialog(null, "Data Berhasil DiHapus");
+            }catch(SQLException err){
+                JOptionPane.showMessageDialog(null, "Data Gagal DiHapus!");
+                reset();
+            } 
+        }
+    }
+    
+  public void itemTerpilih(){                              
+        Data_Search3 DS = new Data_Search3();
+        DS.fC = this;
+        nm.setText(idKry);
+        
+    }
     /**
      * This method is called from within the constructor to initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is always
@@ -30,30 +187,31 @@ public class Form_Cuti extends javax.swing.JFrame {
 
         jLabel1 = new javax.swing.JLabel();
         jPanel1 = new javax.swing.JPanel();
-        jbt = new javax.swing.JTextField();
+        txtcuti = new javax.swing.JTextField();
         jLabel2 = new javax.swing.JLabel();
-        jbt1 = new javax.swing.JTextField();
+        nm = new javax.swing.JTextField();
         jLabel3 = new javax.swing.JLabel();
         jButton6 = new javax.swing.JButton();
         jLabel4 = new javax.swing.JLabel();
         jLabel5 = new javax.swing.JLabel();
-        tg = new com.toedter.calendar.JDateChooser();
+        tgl_cuti = new com.toedter.calendar.JDateChooser();
         jButton1 = new javax.swing.JButton();
-        jButton2 = new javax.swing.JButton();
-        jButton3 = new javax.swing.JButton();
+        upd = new javax.swing.JButton();
+        del = new javax.swing.JButton();
         jButton4 = new javax.swing.JButton();
         breset = new javax.swing.JButton();
         jLabel7 = new javax.swing.JLabel();
-        tg1 = new com.toedter.calendar.JDateChooser();
+        tgl_masuk = new com.toedter.calendar.JDateChooser();
         jScrollPane2 = new javax.swing.JScrollPane();
-        jTextArea1 = new javax.swing.JTextArea();
+        txtalasan = new javax.swing.JTextArea();
         jPanel2 = new javax.swing.JPanel();
         jScrollPane1 = new javax.swing.JScrollPane();
-        jTable1 = new javax.swing.JTable();
-        jTextField1 = new javax.swing.JTextField();
+        tbl = new javax.swing.JTable();
+        cr = new javax.swing.JTextField();
         jButton7 = new javax.swing.JButton();
 
-        setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
+        setDefaultCloseOperation(javax.swing.WindowConstants.DO_NOTHING_ON_CLOSE);
+        setResizable(false);
 
         jLabel1.setFont(new java.awt.Font("Tahoma", 1, 18)); // NOI18N
         jLabel1.setText("Form Cuti");
@@ -91,23 +249,23 @@ public class Form_Cuti extends javax.swing.JFrame {
             }
         });
 
-        jButton2.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Icon/gif/16x16/Modify.gif"))); // NOI18N
-        jButton2.setText("Update");
-        jButton2.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
-        jButton2.setVerticalTextPosition(javax.swing.SwingConstants.BOTTOM);
-        jButton2.addActionListener(new java.awt.event.ActionListener() {
+        upd.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Icon/gif/16x16/Modify.gif"))); // NOI18N
+        upd.setText("Update");
+        upd.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
+        upd.setVerticalTextPosition(javax.swing.SwingConstants.BOTTOM);
+        upd.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jButton2ActionPerformed(evt);
+                updActionPerformed(evt);
             }
         });
 
-        jButton3.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Icon/gif/16x16/Delete.gif"))); // NOI18N
-        jButton3.setText("Delete");
-        jButton3.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
-        jButton3.setVerticalTextPosition(javax.swing.SwingConstants.BOTTOM);
-        jButton3.addActionListener(new java.awt.event.ActionListener() {
+        del.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Icon/gif/16x16/Delete.gif"))); // NOI18N
+        del.setText("Delete");
+        del.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
+        del.setVerticalTextPosition(javax.swing.SwingConstants.BOTTOM);
+        del.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jButton3ActionPerformed(evt);
+                delActionPerformed(evt);
             }
         });
 
@@ -133,9 +291,9 @@ public class Form_Cuti extends javax.swing.JFrame {
 
         jLabel7.setText("Tanggal Masuk");
 
-        jTextArea1.setColumns(20);
-        jTextArea1.setRows(5);
-        jScrollPane2.setViewportView(jTextArea1);
+        txtalasan.setColumns(20);
+        txtalasan.setRows(5);
+        jScrollPane2.setViewportView(txtalasan);
 
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
         jPanel1.setLayout(jPanel1Layout);
@@ -149,11 +307,11 @@ public class Form_Cuti extends javax.swing.JFrame {
                             .addGroup(jPanel1Layout.createSequentialGroup()
                                 .addComponent(jButton1)
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                                .addComponent(jButton2)
+                                .addComponent(upd)
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                                 .addComponent(breset)
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(jButton3)
+                                .addComponent(del)
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                                 .addComponent(jButton4))
                             .addGroup(jPanel1Layout.createSequentialGroup()
@@ -161,11 +319,11 @@ public class Form_Cuti extends javax.swing.JFrame {
                                     .addGroup(jPanel1Layout.createSequentialGroup()
                                         .addComponent(jLabel3)
                                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                        .addComponent(jbt1, javax.swing.GroupLayout.PREFERRED_SIZE, 138, javax.swing.GroupLayout.PREFERRED_SIZE))
+                                        .addComponent(nm, javax.swing.GroupLayout.PREFERRED_SIZE, 138, javax.swing.GroupLayout.PREFERRED_SIZE))
                                     .addGroup(jPanel1Layout.createSequentialGroup()
                                         .addComponent(jLabel2)
                                         .addGap(50, 50, 50)
-                                        .addComponent(jbt, javax.swing.GroupLayout.PREFERRED_SIZE, 138, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                                        .addComponent(txtcuti, javax.swing.GroupLayout.PREFERRED_SIZE, 138, javax.swing.GroupLayout.PREFERRED_SIZE)))
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                                 .addComponent(jButton6)))
                         .addContainerGap(36, Short.MAX_VALUE))
@@ -176,7 +334,7 @@ public class Form_Cuti extends javax.swing.JFrame {
                         .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                             .addGroup(jPanel1Layout.createSequentialGroup()
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                .addComponent(tg1, javax.swing.GroupLayout.PREFERRED_SIZE, 136, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addComponent(tgl_masuk, javax.swing.GroupLayout.PREFERRED_SIZE, 136, javax.swing.GroupLayout.PREFERRED_SIZE)
                                 .addContainerGap(204, Short.MAX_VALUE))
                             .addGroup(jPanel1Layout.createSequentialGroup()
                                 .addGap(18, 18, 18)
@@ -185,7 +343,7 @@ public class Form_Cuti extends javax.swing.JFrame {
                     .addGroup(javax.swing.GroupLayout.Alignment.LEADING, jPanel1Layout.createSequentialGroup()
                         .addComponent(jLabel5)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addComponent(tg, javax.swing.GroupLayout.PREFERRED_SIZE, 136, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addComponent(tgl_cuti, javax.swing.GroupLayout.PREFERRED_SIZE, 136, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addGap(0, 0, Short.MAX_VALUE))))
         );
         jPanel1Layout.setVerticalGroup(
@@ -193,11 +351,11 @@ public class Form_Cuti extends javax.swing.JFrame {
             .addGroup(jPanel1Layout.createSequentialGroup()
                 .addGap(49, 49, 49)
                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jbt, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(txtcuti, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(jLabel2))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jbt1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(nm, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(jLabel3)
                     .addComponent(jButton6))
                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -211,17 +369,17 @@ public class Form_Cuti extends javax.swing.JFrame {
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addComponent(jLabel5)
-                    .addComponent(tg, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addComponent(tgl_cuti, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(tg1, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(tgl_masuk, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(jLabel7, javax.swing.GroupLayout.Alignment.TRAILING))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                        .addComponent(jButton1)
-                        .addComponent(jButton2)
-                        .addComponent(jButton3)
+                    .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addComponent(jButton1, javax.swing.GroupLayout.Alignment.TRAILING)
+                        .addComponent(upd, javax.swing.GroupLayout.Alignment.TRAILING)
+                        .addComponent(del)
                         .addComponent(jButton4))
                     .addComponent(breset))
                 .addGap(14, 14, 14))
@@ -229,7 +387,7 @@ public class Form_Cuti extends javax.swing.JFrame {
 
         jPanel2.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 0, 0)));
 
-        jTable1.setModel(new javax.swing.table.DefaultTableModel(
+        tbl.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {
                 {null, null, null, null},
                 {null, null, null, null},
@@ -240,7 +398,12 @@ public class Form_Cuti extends javax.swing.JFrame {
                 "Title 1", "Title 2", "Title 3", "Title 4"
             }
         ));
-        jScrollPane1.setViewportView(jTable1);
+        tbl.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                tblMouseClicked(evt);
+            }
+        });
+        jScrollPane1.setViewportView(tbl);
 
         jButton7.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Icon/gif/16x16/Text preview.gif"))); // NOI18N
         jButton7.setText("Cari");
@@ -259,8 +422,8 @@ public class Form_Cuti extends javax.swing.JFrame {
                 .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addGroup(jPanel2Layout.createSequentialGroup()
-                        .addComponent(jTextField1, javax.swing.GroupLayout.PREFERRED_SIZE, 125, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                        .addComponent(cr, javax.swing.GroupLayout.PREFERRED_SIZE, 125, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(18, 18, 18)
                         .addComponent(jButton7)))
                 .addContainerGap(13, Short.MAX_VALUE))
         );
@@ -269,7 +432,7 @@ public class Form_Cuti extends javax.swing.JFrame {
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel2Layout.createSequentialGroup()
                 .addGap(20, 20, 20)
                 .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jTextField1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(cr, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(jButton7))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 203, javax.swing.GroupLayout.PREFERRED_SIZE)
@@ -307,8 +470,8 @@ public class Form_Cuti extends javax.swing.JFrame {
     }// </editor-fold>//GEN-END:initComponents
 
     private void jButton6ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton6ActionPerformed
-        Data_Search2 DS = new Data_Search2();
-        //        DS.fP = this;
+        Data_Search3 DS = new Data_Search3();
+           DS.fC = this;
         DS.setVisible(true);
         DS.setResizable(false);
         //        gp.requestFocus();
@@ -319,37 +482,44 @@ public class Form_Cuti extends javax.swing.JFrame {
     }//GEN-LAST:event_jButton1MouseClicked
 
     private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
-        //        save();
+           save();
     }//GEN-LAST:event_jButton1ActionPerformed
 
-    private void jButton2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton2ActionPerformed
-        //        update();
-        //        jButton1.setEnabled(true);
-        //        jButton2.setEnabled(false);
-        //        jButton3.setEnabled(false);
-    }//GEN-LAST:event_jButton2ActionPerformed
+    private void updActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_updActionPerformed
+        update();
+        jButton1.setEnabled(true);
+        upd.setEnabled(false);
+        del.setEnabled(false); 
+    }//GEN-LAST:event_updActionPerformed
 
-    private void jButton3ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton3ActionPerformed
-        //        delete();
-        //        jButton1.setEnabled(true);
-        //        jButton2.setEnabled(false);
-        //        jButton3.setEnabled(false);
-    }//GEN-LAST:event_jButton3ActionPerformed
+    private void delActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_delActionPerformed
+        delete();
+        jButton1.setEnabled(true);
+        upd.setEnabled(false);
+        del.setEnabled(false);
+    }//GEN-LAST:event_delActionPerformed
 
     private void jButton4ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton4ActionPerformed
-        int konf = JOptionPane.showConfirmDialog(null, "Yakin Ingin menutup Form?","Konfirmasi",JOptionPane.YES_NO_OPTION);
-        if(konf == JOptionPane.YES_OPTION){
+        int konf = JOptionPane.showConfirmDialog(null, "Yakin Ingin menutup Form?", "Konfirmasi", JOptionPane.YES_NO_OPTION);
+        if (konf == JOptionPane.YES_OPTION) {
             this.dispose();
         }
     }//GEN-LAST:event_jButton4ActionPerformed
 
     private void bresetActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_bresetActionPerformed
-        // TODO add your handling code here:
+       reset();
     }//GEN-LAST:event_bresetActionPerformed
 
     private void jButton7ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton7ActionPerformed
-        // TODO add your handling code here:
+       getData();
     }//GEN-LAST:event_jButton7ActionPerformed
+
+    private void tblMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_tblMouseClicked
+        selectData();
+        upd.setEnabled(true);
+        del.setEnabled(true);
+        jButton1.setEnabled(false);
+    }//GEN-LAST:event_tblMouseClicked
 
     /**
      * @param args the command line arguments
@@ -388,9 +558,9 @@ public class Form_Cuti extends javax.swing.JFrame {
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton breset;
+    private javax.swing.JTextField cr;
+    private javax.swing.JButton del;
     private javax.swing.JButton jButton1;
-    private javax.swing.JButton jButton2;
-    private javax.swing.JButton jButton3;
     private javax.swing.JButton jButton4;
     private javax.swing.JButton jButton6;
     private javax.swing.JButton jButton7;
@@ -404,12 +574,17 @@ public class Form_Cuti extends javax.swing.JFrame {
     private javax.swing.JPanel jPanel2;
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JScrollPane jScrollPane2;
-    private javax.swing.JTable jTable1;
-    private javax.swing.JTextArea jTextArea1;
-    private javax.swing.JTextField jTextField1;
-    private javax.swing.JTextField jbt;
-    private javax.swing.JTextField jbt1;
-    private com.toedter.calendar.JDateChooser tg;
-    private com.toedter.calendar.JDateChooser tg1;
+    private javax.swing.JTextField nm;
+    private javax.swing.JTable tbl;
+    private com.toedter.calendar.JDateChooser tgl_cuti;
+    private com.toedter.calendar.JDateChooser tgl_masuk;
+    private javax.swing.JTextArea txtalasan;
+    private javax.swing.JTextField txtcuti;
+    private javax.swing.JButton upd;
     // End of variables declaration//GEN-END:variables
+
+    private void Seticon() {
+        setIconImage(Toolkit.getDefaultToolkit().getImage(getClass().getResource("/Icon/gif/16x16/dktbig.gif")));
+    }
+
 }
