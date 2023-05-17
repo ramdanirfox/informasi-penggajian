@@ -55,10 +55,11 @@ public class Form_User extends javax.swing.JFrame {
     }
     public void loadData(){
         vUser = user.getText();
-        vPass = pass.getSelectedText();
+        vPass = pass.getText();
     }
     public void save(){
         loadData();
+        System.out.println("vUser : "+vUser+"vPass : "+vPass);
         try{
         st = (Statement)koneksi.getKoneksi().createStatement();
         String sql = "Insert into user(username,password)"
